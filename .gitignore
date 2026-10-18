@@ -1,0 +1,17 @@
+# 构建产物
+/build/
+/out/
+*.o
+*.a
+*.tmp
+*.part
+
+# 解包后的源码（make prepare 从 dl/ 生成）
+/src/
+
+# 源码包缓存，体积大，不纳入版本库
+/dl/
+
+# 编辑器临时文件
+*.swp
+*.bak
