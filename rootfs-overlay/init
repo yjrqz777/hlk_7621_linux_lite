@@ -1,0 +1,8 @@
+#!/bin/busybox sh
+
+/bin/busybox mount -t proc proc /proc
+/bin/busybox mount -t sysfs sysfs /sys
+/bin/busybox mount -t tmpfs tmpfs /tmp
+
+echo "MT7621 Linux Lite started"
+exec /bin/busybox sh

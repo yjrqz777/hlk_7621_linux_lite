@@ -24,6 +24,12 @@ TOPDIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 # 可覆盖参数
 # ---------------------------------------------------------------------------
 OPENWRT      ?= $(TOPDIR)/../openwrt-24.10.8
+
+# OpenWrt 工具链的 specs 用 getenv(STAGING_DIR /usr/include) 拼路径，
+# 该变量未定义时，每次调用 gcc 都会打印一行 warning
+STAGING_DIR  ?= $(OPENWRT)/staging_dir/target-mipsel_24kc_musl
+export STAGING_DIR
+
 KERNEL_VER   ?= 6.6.144
 BUSYBOX_VER  ?= 1.36.1
 JOBS         ?= $(shell nproc 2>/dev/null || echo 4)
@@ -79,7 +85,8 @@ LOADER_BIN    := $(OUT_DIR)/loader.bin
 UIMAGE        := $(OUT_DIR)/uImage
 
 BOARD_DTS_SRC  := $(CFG_DIR)/board.dts
-BOARD_DTS_KSRC := $(LINUX_SRC)/arch/mips/boot/dts/ralink/$(BOARD_DTS_NAME).dts
+BOARD_DTSI     := $(CFG_DIR)/mt7621.dtsi
+KERNEL_DTC     := $(LINUX_BUILD)/scripts/dtc/dtc
 
 KERNEL_MAKE   := PATH="$(HOST_TOOLS):$$PATH" $(MAKE) -C $(LINUX_SRC) O=$(LINUX_BUILD) ARCH=mips CROSS_COMPILE=$(CROSS)
 BUSYBOX_MAKE  := $(MAKE) -C $(BUSYBOX_SRC) O=$(BUSYBOX_BUILD) CROSS_COMPILE=$(CROSS)
@@ -138,6 +145,7 @@ check:
 	@test -x "$(MKIMAGE)"  || { echo "ERROR: 找不到 $(MKIMAGE)"; exit 1; }
 	@test -x "$(LZMA)"     || { echo "ERROR: 找不到 $(LZMA)"; exit 1; }
 	@test -f $(BOARD_DTS_SRC) || { echo "ERROR: 缺少 config/board.dts"; exit 1; }
+	@test -f $(BOARD_DTSI) || { echo "ERROR: 缺少 config/mt7621.dtsi"; exit 1; }
 	@test -f $(CFG_DIR)/kernel.config || { echo "ERROR: 缺少 config/kernel.config"; exit 1; }
 	@test -f $(LOADER_SRC)/loader.c || { echo "ERROR: 缺少 third_party/lzma-loader"; exit 1; }
 	@mkdir -p $(DL_DIR) $(SRC_DIR) $(BUILD_DIR) $(OUT_DIR) $(CFG_DIR)
@@ -235,12 +243,6 @@ rootfs: $(ROOTFS_CPIO)
 # ---------------------------------------------------------------------------
 # Kernel：配置内嵌 initramfs，产物为 vmlinux.bin 与板级 DTB
 # ---------------------------------------------------------------------------
-$(BOARD_DTS_KSRC): $(BOARD_DTS_SRC) | $(LINUX_SRC)/.unpacked
-	@cp $< $@
-	@grep -q '$(BOARD_DTS_NAME).dtb' $(LINUX_SRC)/arch/mips/boot/dts/ralink/Makefile || \
-		echo 'dtb-y += $(BOARD_DTS_NAME).dtb' >> $(LINUX_SRC)/arch/mips/boot/dts/ralink/Makefile
-	@echo "  COPY   board.dts -> kernel arch/mips/boot/dts/ralink/"
-
 $(LINUX_BUILD)/.configured: $(LINUX_SRC)/.unpacked $(CFG_DIR)/kernel.config $(ROOTFS_CPIO)
 	@mkdir -p $(LINUX_BUILD)
 	@cp $(CFG_DIR)/kernel.config $(LINUX_BUILD)/.config
@@ -278,9 +280,13 @@ $(KERNEL_BIN): $(LINUX_BUILD)/.configured | $(OUT_DIR)
 	@cp $(LINUX_BUILD)/arch/mips/boot/vmlinux.bin $@
 	@printf "  KERNEL %s (%s 字节)\n" "$(KERNEL_BIN)" "$$(stat -c%s $(KERNEL_BIN))"
 
-$(BOARD_DTB): $(BOARD_DTS_KSRC) $(LINUX_BUILD)/.configured | $(OUT_DIR)
-	$(KERNEL_MAKE) -s dtbs
-	@cp $(LINUX_BUILD)/arch/mips/boot/dts/ralink/$(BOARD_DTS_NAME).dtb $@
+$(BOARD_DTB): $(BOARD_DTS_SRC) $(BOARD_DTSI) $(LINUX_BUILD)/.configured | $(OUT_DIR)
+	@$(KERNEL_MAKE) -s scripts_dtc
+	@$(HOSTCC) -E -nostdinc -I $(CFG_DIR) -I $(LINUX_SRC)/scripts/dtc/include-prefixes \
+		-undef -D__DTS__ -x assembler-with-cpp -o $@.cpp $(BOARD_DTS_SRC)
+	@$(KERNEL_DTC) -I dts -O dtb -b 0 \
+		-Wno-interrupt_provider -Wno-unique_unit_address -o $@ $@.cpp
+	@rm -f $@.cpp
 	@printf "  DTB    %s (%s 字节)\n" "$(BOARD_DTB)" "$$(stat -c%s $(BOARD_DTB))"
 
 kernel: $(KERNEL_BIN) $(BOARD_DTB)

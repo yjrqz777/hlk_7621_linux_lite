@@ -22,6 +22,7 @@ linux_lite/
 ├── Makefile                  顶层构建入口
 ├── config/
 │   ├── board.dts             板级 DTS
+│   ├── mt7621.dtsi           SoC 级 DTSI
 │   └── kernel.config         内核配置
 ├── doc/                      方案文档
 ├── rootfs-overlay/           /init 与额外 rootfs 文件
@@ -39,7 +40,21 @@ linux_lite/
 - 主机工具：`mkimage`、`lzma`
 - 内核与 BusyBox 源码包放在 `dl/`，由 `make prepare` 解包到 `src/`
 
-工具链与主机工具路径可用变量覆盖：
+### 工具链来源：OpenWrt SDK
+
+本工程使用 OpenWrt 24.10.8 官方发布的 ramips/mt7621 SDK，内含 `toolchain-mipsel_24kc_gcc-13.3.0_musl` 与 `host/bin` 下的 `mkimage`、`lzma`：
+
+[openwrt-sdk-24.10.8-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64.tar.zst](https://downloads.openwrt.org/releases/24.10.8/targets/ramips/mt7621/openwrt-sdk-24.10.8-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64.tar.zst)
+
+```sh
+tar --zstd -xf openwrt-sdk-24.10.8-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64.tar.zst -C /opt
+cd linux_lite
+make OPENWRT=/opt/openwrt-sdk-24.10.8-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64
+```
+
+本地已编译的 OpenWrt 构建树同样可用，把 `OPENWRT` 指向它即可，例如 `OPENWRT=/path/to/openwrt-24.10.8`。
+
+工具链与主机工具路径也可单独覆盖：
 
 ```sh
 make TOOLCHAIN=/path/to/toolchain CROSS=/path/to/prefix- \
