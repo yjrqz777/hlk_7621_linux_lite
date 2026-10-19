@@ -8,7 +8,7 @@
 
 # 解包后的源码（make prepare 从 dl/ 生成）
 /src/
-
+toolchain/
 # 源码包缓存，体积大，不纳入版本库
 /dl/
 

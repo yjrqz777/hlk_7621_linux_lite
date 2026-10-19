@@ -23,7 +23,10 @@ TOPDIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 # ---------------------------------------------------------------------------
 # 可覆盖参数
 # ---------------------------------------------------------------------------
-OPENWRT      ?= $(TOPDIR)/../openwrt-24.10.8
+# 默认使用项目内解压的 OpenWrt 24.10.8 ramips/mt7621 SDK 作为外部工具链，
+# 也可改指本地 OpenWrt 构建树: make OPENWRT=/path/to/openwrt-24.10.8
+SDK_DIR      ?= $(TOPDIR)/toolchain/openwrt-sdk-24.10.8-ramips-mt7621_gcc-13.3.0_musl.Linux-x86_64
+OPENWRT      ?= $(SDK_DIR)
 
 # OpenWrt 工具链的 specs 用 getenv(STAGING_DIR /usr/include) 拼路径，
 # 该变量未定义时，每次调用 gcc 都会打印一行 warning
@@ -123,6 +126,7 @@ help:
 
 printvars:
 	@echo "TOPDIR          = $(TOPDIR)"
+	@echo "SDK_DIR         = $(SDK_DIR)"
 	@echo "OPENWRT         = $(OPENWRT)"
 	@echo "CROSS           = $(CROSS)"
 	@echo "MKIMAGE         = $(MKIMAGE)"
