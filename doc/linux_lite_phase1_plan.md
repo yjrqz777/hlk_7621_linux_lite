@@ -91,7 +91,7 @@ boot_spi=sf probe 0; sf read 0x82000000 0x50000 0x400000; bootm 0x82000000
 启动菜单：
 
 ```text
-1. Boot OpenWrt from SPI Flash
+1. Boot from SPI Flash
 2. WebFlash Recovery
 0. Exit
 ```
@@ -99,7 +99,7 @@ boot_spi=sf probe 0; sf read 0x82000000 0x50000 0x400000; bootm 0x82000000
 菜单项 1 对应源码中的：
 
 ```c
-bootmenu_0=Boot OpenWrt from SPI Flash=run boot_spi
+bootmenu_0=Boot from SPI Flash=run boot_spi
 bootcmd=run boot_spi
 ```
 
