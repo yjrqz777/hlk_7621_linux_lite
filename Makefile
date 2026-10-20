@@ -91,7 +91,10 @@ BOARD_DTS_SRC  := $(CFG_DIR)/board.dts
 BOARD_DTSI     := $(CFG_DIR)/mt7621.dtsi
 KERNEL_DTC     := $(LINUX_BUILD)/scripts/dtc/dtc
 
-KERNEL_MAKE   := PATH="$(HOST_TOOLS):$$PATH" $(MAKE) -C $(LINUX_SRC) O=$(LINUX_BUILD) ARCH=mips CROSS_COMPILE=$(CROSS)
+# 注意：这里不能把 $(HOST_TOOLS) 放到 PATH 前面。
+# 内核压缩 initramfs 用的是 xz 风格的 lzma 命令（$(LZMA) -9，读写 stdin/stdout），
+# 而 SDK 的 host/bin/lzma 是 7-Zip 4.65 命令行（lzma e <in> <out>），两者不兼容。
+KERNEL_MAKE   := $(MAKE) -C $(LINUX_SRC) O=$(LINUX_BUILD) ARCH=mips CROSS_COMPILE=$(CROSS)
 BUSYBOX_MAKE  := $(MAKE) -C $(BUSYBOX_SRC) O=$(BUSYBOX_BUILD) CROSS_COMPILE=$(CROSS)
 
 # 目录目标，供 order-only 依赖使用
